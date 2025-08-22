@@ -1,81 +1,64 @@
 // @ts-check
-import { defineConfig, devices } from '@playwright/test';
+import { defineConfig, devices } from "@playwright/test";
+import * as dotenv from "dotenv";
+import path, { dirname } from "path";
+import { fileURLToPath } from "url";
+
+// ✅ Fix for __dirname in ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Load environment variables
+dotenv.config({ path: path.resolve(__dirname, ".env") });
 
 /**
- * Read environment variables from file.
- * https://github.com/motdotla/dotenv
- */
-// import dotenv from 'dotenv';
-// import path from 'path';
-// dotenv.config({ path: path.resolve(__dirname, '.env') });
-
-/**
- * @see https://playwright.dev/docs/test-configuration
+ * Playwright Configuration
+ * - Splits API & UI tests
+ * - Loads BASE_URL from .env
  */
 export default defineConfig({
-  testDir: './tests',
-  /* Run tests in files in parallel */
+  testDir: "./tests",
   fullyParallel: true,
-  /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
-  /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
-  /* Opt out of parallel tests on CI. */
   workers: process.env.CI ? 1 : undefined,
-  /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: 'html',
-  /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
-  use: {
-    /* Base URL to use in actions like `await page.goto('/')`. */
-    // baseURL: 'http://localhost:3000',
 
-    /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
-    trace: 'on-first-retry',
+  // ✅ Reporters
+  reporter: [["list"], ["html", { open: "never" }]],
+
+  // ✅ Default "use" for all tests
+  use: {
+    baseURL: process.env.BASE_URL || "http://localhost:3000",
+    trace: "on-first-retry",
   },
 
-  /* Configure projects for major browsers */
+  // ✅ Projects split: API vs UI
   projects: [
     {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      name: "API Tests",
+      testDir: "./tests/api", // explicitly look into api folder
+      testMatch: /.*\.spec\.(js|ts)$/, // run both JS & TS
+      use: {
+        baseURL: process.env.BASE_URL || "http://localhost:3000",
+      },
     },
-
     {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
+      name: "chromium",
+      testDir: "./tests/ui",
+      testMatch: /.*\.spec\.(js|ts)$/,
+      use: { ...devices["Desktop Chrome"] },
     },
-
     {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
+      name: "firefox",
+      testDir: "./tests/ui",
+      testMatch: /.*\.spec\.(js|ts)$/,
+      use: { ...devices["Desktop Firefox"] },
     },
-
-    /* Test against mobile viewports. */
-    // {
-    //   name: 'Mobile Chrome',
-    //   use: { ...devices['Pixel 5'] },
-    // },
-    // {
-    //   name: 'Mobile Safari',
-    //   use: { ...devices['iPhone 12'] },
-    // },
-
-    /* Test against branded browsers. */
-    // {
-    //   name: 'Microsoft Edge',
-    //   use: { ...devices['Desktop Edge'], channel: 'msedge' },
-    // },
-    // {
-    //   name: 'Google Chrome',
-    //   use: { ...devices['Desktop Chrome'], channel: 'chrome' },
-    // },
+    {
+      name: "webkit",
+      testDir: "./tests/ui",
+      testMatch: /.*\.spec\.(js|ts)$/,
+      use: { ...devices["Desktop Safari"] },
+    },
   ],
-
-  /* Run your local dev server before starting the tests */
-  // webServer: {
-  //   command: 'npm run start',
-  //   url: 'http://localhost:3000',
-  //   reuseExistingServer: !process.env.CI,
-  // },
 });
-

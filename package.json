@@ -1,15 +1,23 @@
 {
   "name": "playwrightvalt",
   "version": "1.0.0",
-  "description": "",
+  "description": "Playwright API testing project",
   "main": "index.js",
-  "scripts": {},
+  "type": "module",
+  "scripts": {
+    "start:api": "node tests/api/server.js",
+    "test:api": "npx playwright test tests/api"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
   "devDependencies": {
     "@playwright/test": "^1.55.0",
     "@types/node": "^24.3.0"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0"
   }
 }
+
