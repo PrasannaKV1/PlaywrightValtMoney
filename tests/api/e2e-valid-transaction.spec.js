@@ -1,47 +1,45 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from '@playwright/test';
+import { getApiKey, createAccount } from './helpers/auth.util.js';
 
-let fromAccountId;
-let toAccountId;
+test.describe('E2E Valid Transaction', () => {
+  const baseURL = 'https://template.postman-echo.com';
+  let apiKey;
+  let fromAccountId;
+  let toAccountId;
 
+  test.beforeAll(async () => {
+    apiKey = await getApiKey(baseURL);
+  });
 
-test.describe("E2E Valid Transaction", () => {
-  test("should complete a fund transfer successfully", async ({ request }) => {
-    // Step 1: Generate API Key
-    const keyRes = await request.get("/api/v1/auth");
-    expect(keyRes.status()).toBe(200);
-    const { apiKey } = await keyRes.json();
-    expect(apiKey).toBeTruthy();
+  test('should complete a fund transfer successfully', async ({ request }) => {
+    const headers = {
+      'Content-Type': 'application/json',
+      'api-key': apiKey,
+    };
 
-    // Step 2: Create FromAccount
-    const fromRes = await request.post("/api/v1/accounts", {
-      data: { owner: "Alice - FromAccount", balance: 50, currency: "COSMIC_COINS" },
+    fromAccountId = await createAccount(request, baseURL, apiKey, 'Alice - FromAccount', 50);
+    toAccountId = await createAccount(request, baseURL, apiKey, 'Bob - ToAccount', 0);
+
+    const txRes = await request.post(`${baseURL}/api/v1/transactions`, {
+      headers,
+      data: {
+        fromAccountId,
+        toAccountId,
+        amount: 20,
+        currency: 'COSMIC_COINS',
+      },
     });
-    const fromBody = await fromRes.json();
-    fromAccountId = fromBody.account.id;
-    expect(fromAccountId).toBeGreaterThan(0);
 
-    // Step 3: Create ToAccount
-    const toRes = await request.post("/api/v1/accounts", {
-      data: { owner: "Bob - ToAccount", balance: 0, currency: "COSMIC_COINS" },
-    });
-    const toBody = await toRes.json();
-    toAccountId = toBody.account.id;
-    expect(toAccountId).toBeGreaterThan(0);
-
-    // Step 4: Create Transaction
-    const txRes = await request.post("/api/v1/transactions", {
-      headers: { "api-key": apiKey },
-      data: { fromAccountId, toAccountId, amount: 20, currency: "COSMIC_COINS" },
-    });
+    expect(txRes.status()).toBe(200);
     const txBody = await txRes.json();
     expect(txBody.success).toBeTruthy();
 
-    // Step 5: Verify ToAccount balance = 20
-    const toBalance = await (await request.get(`/api/v1/accounts/${toAccountId}`)).json();
-    expect(toBalance.account.balance).toBe(20);
+    const toBalanceRes = await request.get(`${baseURL}/api/v1/accounts/${toAccountId}`, { headers });
+    const { account: toBalance } = await toBalanceRes.json();
+    expect(toBalance.balance).toBe(20);
 
-    // Step 6: Verify FromAccount balance = 30
-    const fromBalance = await (await request.get(`/api/v1/accounts/${fromAccountId}`)).json();
-    expect(fromBalance.account.balance).toBe(30);
+    const fromBalanceRes = await request.get(`${baseURL}/api/v1/accounts/${fromAccountId}`, { headers });
+    const { account: fromBalance } = await fromBalanceRes.json();
+    expect(fromBalance.balance).toBe(30);
   });
 });

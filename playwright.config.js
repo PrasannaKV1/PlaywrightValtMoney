@@ -1,64 +1,50 @@
-// @ts-check
-import { defineConfig, devices } from "@playwright/test";
-import * as dotenv from "dotenv";
-import path, { dirname } from "path";
-import { fileURLToPath } from "url";
+import { defineConfig, devices } from '@playwright/test';
+import path from 'path';
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
 
-// ✅ Fix for __dirname in ES Modules
+// Resolve __dirname in ES module scope
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = path.dirname(__filename);
 
-// Load environment variables
-dotenv.config({ path: path.resolve(__dirname, ".env") });
+// Load environment variables from .env
+dotenv.config({ path: path.resolve(__dirname, '.env') });
 
-/**
- * Playwright Configuration
- * - Splits API & UI tests
- * - Loads BASE_URL from .env
- */
+// Set baseURL from env or fallback
+const baseURL = process.env.BASE_URL || 'https://template.postman-echo.com';
+
 export default defineConfig({
-  testDir: "./tests",
+  testDir: './tests',
   fullyParallel: true,
-  forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
-
-  // ✅ Reporters
-  reporter: [["list"], ["html", { open: "never" }]],
-
-  // ✅ Default "use" for all tests
+  reporter: [
+    ['list'],
+    ['html', { open: 'never', outputFolder: 'playwright-report' }],
+  ],
   use: {
-    baseURL: process.env.BASE_URL || "http://localhost:3000",
-    trace: "on-first-retry",
+    baseURL,
+    trace: 'on-first-retry',
+    headless: true,
+    viewport: { width: 1280, height: 720 },
+    ignoreHTTPSErrors: true,
   },
-
-  // ✅ Projects split: API vs UI
   projects: [
     {
-      name: "API Tests",
-      testDir: "./tests/api", // explicitly look into api folder
-      testMatch: /.*\.spec\.(js|ts)$/, // run both JS & TS
+      name: 'API Tests',
+      testDir: './tests/api',
+      testMatch: /.*\.spec\.(js|ts)$/,
       use: {
-        baseURL: process.env.BASE_URL || "http://localhost:3000",
+        baseURL,
       },
     },
     {
-      name: "chromium",
-      testDir: "./tests/ui",
+      name: 'UI - Chromium',
+      testDir: './tests/ui',
       testMatch: /.*\.spec\.(js|ts)$/,
-      use: { ...devices["Desktop Chrome"] },
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL,
+      },
     },
-    {
-      name: "firefox",
-      testDir: "./tests/ui",
-      testMatch: /.*\.spec\.(js|ts)$/,
-      use: { ...devices["Desktop Firefox"] },
-    },
-    {
-      name: "webkit",
-      testDir: "./tests/ui",
-      testMatch: /.*\.spec\.(js|ts)$/,
-      use: { ...devices["Desktop Safari"] },
-    },
+    // You can add more browser projects here (e.g., Firefox, WebKit)
   ],
 });
