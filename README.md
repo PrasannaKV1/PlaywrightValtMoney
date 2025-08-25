@@ -6,7 +6,7 @@
 
 1]  Create a folder locally 
 2]  open visual studio code 
-3]  import the folder whihc you created locally 
+3]  import the folder which we have created locally 
 # use below commands 
 npm init playwright@init
 a] select javascript
